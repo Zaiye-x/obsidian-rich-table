@@ -1,8 +1,28 @@
 # Rich Table · Obsidian 富表格
 
-参考 Lattics《强大美观的表格》视频实现的 Obsidian 桌面插件。表格嵌入笔记，点击“编辑”打开可视化窗口，支持 Excel 区域粘贴、单元格图片、模板与样式调整。
+面向 Obsidian 桌面端的可视化富表格插件。表格直接嵌入笔记，点击“编辑”即可打开独立编辑窗口，支持 Excel 区域粘贴、单元格图片、模板与样式调整。
 
 当前可安装体验版：**0.1.2**，作者 **zy**。声明最低 Obsidian 版本 **1.8.7**，仅桌面端。构建和自动化测试通过，Obsidian 实机完整使用流程尚未验证，详见 [验证记录](docs/verification.md)。
+
+## 界面预览
+
+### 阅读视图
+
+表格以结构化内容直接呈现在笔记中，支持表头、对齐、边框、隔行底色等样式。
+
+![Rich Table 阅读视图](docs/images/overview.png)
+
+### 可视化编辑器
+
+独立编辑窗口集中提供行列操作、合并拆分、图片、导出、模板及样式设置。
+
+![Rich Table 可视化编辑器](docs/images/editor.png)
+
+### 选区与局部样式
+
+可框选连续单元格区域，并将文字格式、对齐、颜色和边框应用到当前选区。
+
+![Rich Table 选区与局部样式](docs/images/selection-style.png)
 
 ## 安装
 
@@ -93,5 +113,3 @@ npm run package
 构建生成根目录 `main.js`；ZIP 输出到 `dist/`。源码在 `src/`，测试在 `tests/`，设计与实施说明在 `docs/`。
 
 `dev/` 提供导入真实编辑器代码的浏览器模拟宿主，用于开发交互检查，不能替代 Obsidian 兼容性测试。
-
-参考视频：https://www.bilibili.com/video/BV1rdYfeLEX7/
