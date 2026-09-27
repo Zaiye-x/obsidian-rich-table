@@ -9,11 +9,12 @@ import { button, download, field } from "./ui";
 type Axis = "row" | "col";
 interface AxisRange { from: number; count: number }
 
-function toolbarAction(parent: HTMLElement, iconName: string, label: string, title: string, action: () => void): HTMLButtonElement {
-  const control = button(parent, label, action, "rt-toolbar-action");
+function iconAction(parent: HTMLElement, iconName: string, label: string, title: string, action: () => void, cls = "rt-toolbar-action", iconOnly = false): HTMLButtonElement {
+  const control = button(parent, iconOnly ? "" : label, action, cls);
   const icon = element(parent.ownerDocument, "span", "rt-button-icon");
   icon.setAttribute("aria-hidden", "true"); setIcon(icon, iconName);
-  control.prepend(icon); control.title = title;
+  control.prepend(icon); control.title = title; control.setAttribute("aria-label", label);
+  if (iconOnly) control.classList.add("rt-icon-only");
   return control;
 }
 
@@ -68,22 +69,25 @@ export class TableEditor extends Modal {
     this.titleInput.addEventListener("change", () => this.change(t => t.title = this.titleInput.value));
     title.append(this.titleInput);
     const actions = element(this.doc, "div", "rt-actions");
-    button(actions, "导出", () => this.exportMenu(actions));
-    button(actions, "保存并关闭", () => void this.save(), "mod-cta");
+    let exportButton!: HTMLButtonElement;
+    exportButton = iconAction(actions, "download", "导出", "导出表格", () => this.exportMenu(exportButton), "rt-action-button");
+    iconAction(actions, "save", "保存并关闭", "保存表格并关闭", () => void this.save(), "rt-action-button mod-cta");
     top.append(actions); root.append(top);
     const toolbar = element(this.doc, "div", "rt-toolbar");
-    this.undoButton = button(toolbar, "撤销", () => this.undo());
+    const historyActions = element(this.doc, "div", "rt-tool-group");
+    this.undoButton = iconAction(historyActions, "undo-2", "撤销", "撤销（⌘/Ctrl Z）", () => this.undo(), "rt-toolbar-action", true);
     this.undoButton.title = "⌘/Ctrl Z（单元格编辑完成后）";
-    this.redoButton = button(toolbar, "重做", () => this.undo(true));
-    const structure = element(this.doc, "div", "rt-structure-actions");
-    toolbarAction(structure, "rows-3", "新增行", "在当前选区下方新增一行", () => this.insertAxis("row", "after"));
-    toolbarAction(structure, "columns-3", "新增列", "在当前选区右侧新增一列", () => this.insertAxis("col", "after"));
+    this.redoButton = iconAction(historyActions, "redo-2", "重做", "重做（⌘/Ctrl Shift Z）", () => this.undo(true), "rt-toolbar-action", true);
+    const structureActions = element(this.doc, "div", "rt-tool-group");
+    iconAction(structureActions, "rows-3", "新增行", "在当前选区下方新增一行", () => this.insertAxis("row", "after"));
+    iconAction(structureActions, "columns-3", "新增列", "在当前选区右侧新增一列", () => this.insertAxis("col", "after"));
     let moreButton!: HTMLButtonElement;
-    moreButton = toolbarAction(structure, "ellipsis", "更多", "更多行列操作", () => this.structureMenu(moreButton));
-    toolbar.append(structure);
-    button(toolbar, "合并", () => this.change(t => merge(t, this.area)));
-    button(toolbar, "拆分", () => this.change(t => split(t, this.area)));
-    button(toolbar, "插入图片", () => this.pickImage());
+    moreButton = iconAction(structureActions, "ellipsis", "更多", "更多行列操作", () => this.structureMenu(moreButton), "rt-toolbar-action", true);
+    const cellActions = element(this.doc, "div", "rt-tool-group rt-tool-group-last");
+    iconAction(cellActions, "merge", "合并", "合并选中单元格", () => this.change(t => merge(t, this.area)));
+    iconAction(cellActions, "split", "拆分", "拆分选中单元格", () => this.change(t => split(t, this.area)));
+    iconAction(cellActions, "image-plus", "插入图片", "向当前单元格插入图片", () => this.pickImage());
+    toolbar.append(historyActions, structureActions, cellActions);
     this.count = element(this.doc, "span", "rt-count"); toolbar.append(this.count); root.append(toolbar);
     const body = element(this.doc, "div", "rt-editor-body");
     this.grid = element(this.doc, "div", "rt-grid-wrap"); this.grid.tabIndex = -1;

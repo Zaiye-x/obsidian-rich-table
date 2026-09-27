@@ -48,7 +48,7 @@ function setup(saveError = false) {
   const storage = { image: () => null, async save(t: any) { if (saveError) throw new Error("冲突：拒绝覆盖"); saves.push(t); } };
   const editor = new module.exports.TableEditor({}, initial, storage); editor.open();
   const click = (label: string, root = doc.body) => {
-    const button = [...root.querySelectorAll("button")].find(b => b.textContent === label);
+    const button = [...root.querySelectorAll("button")].find(b => b.textContent === label || b.getAttribute("aria-label") === label);
     assert.ok(button, `missing button: ${label}`); button.click();
   };
   const clickMenu = (label: string) => {
@@ -91,6 +91,15 @@ test("cell text commit, Tab navigation and native focus survive DOM replacement"
   assert.equal(h.doc.activeElement, h.cell(0, 1));
   assert.equal(h.doc.querySelector("textarea"), null);
   assert.equal(h.saves.length, 0);
+});
+test("editor actions use compact icon controls and consistent toolbar groups", () => {
+  const h = setup(), groups = h.doc.querySelectorAll(".rt-toolbar .rt-tool-group");
+  assert.equal(groups.length, 3);
+  assert.equal(h.doc.querySelectorAll(".rt-toolbar .rt-toolbar-action").length, 8);
+  assert.equal(h.doc.querySelectorAll(".rt-toolbar .rt-button-icon").length, 8);
+  assert.equal(h.doc.querySelector('button[aria-label="撤销"]')?.textContent, "");
+  assert.equal(h.doc.querySelector('button[aria-label="更多"]')?.textContent, "");
+  assert.equal(h.doc.querySelectorAll(".rt-heading .rt-action-button .rt-button-icon").length, 2);
 });
 test("composition keystrokes do not move selection or truncate text", () => {
   const h = setup(), input = h.start(); input.value = "中文输入";

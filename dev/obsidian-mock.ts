@@ -42,6 +42,11 @@ export class Notice {
 export function setIcon(parent: HTMLElement, name: string): void {
   const icon = document.createElement("span");
   icon.className = "mock-icon"; icon.dataset.icon = name;
+  icon.textContent = {
+    download: "↓", save: "✓", "undo-2": "↶", "redo-2": "↷",
+    "rows-3": "≡", "columns-3": "▥", ellipsis: "···",
+    merge: "⤢", split: "↔", "image-plus": "+"
+  }[name] || "•";
   parent.replaceChildren(icon);
 }
 export class TFile {}
