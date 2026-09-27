@@ -16,7 +16,12 @@ function openEditor() {
   new TableEditor({} as any, data, storage as any).open();
 }
 function show() {
-  renderPreview(document.querySelector<HTMLElement>("#preview")!, data, path => images.get(path) || null, openEditor);
+  const preview = document.querySelector<HTMLElement>("#preview")!;
+  renderPreview(preview, data, path => images.get(path) || null, openEditor);
+  const codeButton = document.createElement("button");
+  codeButton.type = "button"; codeButton.className = "mock-code-button";
+  codeButton.textContent = "</>"; codeButton.title = "Obsidian 代码按钮"; codeButton.setAttribute("aria-label", "Obsidian 代码按钮");
+  preview.append(codeButton);
 }
 document.querySelector("#edit")!.addEventListener("click", openEditor);
 document.querySelector("#theme")!.addEventListener("click", () => document.body.classList.toggle("theme-dark"));
