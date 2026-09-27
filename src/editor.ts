@@ -1,10 +1,18 @@
-import { App, Menu, Modal, Notice } from "obsidian";
+import { App, Menu, Modal, Notice, setIcon } from "obsidian";
 import { changeAxis, clone, expandedRect, History, merge, owners, parse, paste, Picture, Point, rect, Rect, selected, serialize, split, TableData } from "./model";
 import { fromClipboard, toMarkdown, toTSV } from "./clipboard";
 import { colLabel, element, renderTable, toHTML } from "./renderer";
 import { NoteStorage } from "./storage";
 import { PanelHost, renderPanel, Scope } from "./panel";
 import { button, download, field } from "./ui";
+
+function toolbarAction(parent: HTMLElement, iconName: string, label: string, title: string, action: () => void): HTMLButtonElement {
+  const control = button(parent, label, action, "rt-toolbar-action");
+  const icon = element(parent.ownerDocument, "span", "rt-button-icon");
+  icon.setAttribute("aria-hidden", "true"); setIcon(icon, iconName);
+  control.prepend(icon); control.title = title;
+  return control;
+}
 
 class ConfirmClose extends Modal {
   constructor(app: App, private choose: (choice: "save" | "discard") => void) { super(app); }
@@ -62,7 +70,12 @@ export class TableEditor extends Modal {
     this.undoButton = button(toolbar, "撤销", () => this.undo());
     this.undoButton.title = "⌘/Ctrl Z（单元格编辑完成后）";
     this.redoButton = button(toolbar, "重做", () => this.undo(true));
-    button(toolbar, "行列操作", () => this.structureMenu(toolbar));
+    const structure = element(this.doc, "div", "rt-structure-actions");
+    toolbarAction(structure, "rows-3", "新增行", "在当前选区下方新增一行", () => this.insertAxis("row", "after"));
+    toolbarAction(structure, "columns-3", "新增列", "在当前选区右侧新增一列", () => this.insertAxis("col", "after"));
+    let moreButton!: HTMLButtonElement;
+    moreButton = toolbarAction(structure, "ellipsis", "更多", "更多行列操作", () => this.structureMenu(moreButton));
+    toolbar.append(structure);
     button(toolbar, "合并", () => this.change(t => merge(t, this.area)));
     button(toolbar, "拆分", () => this.change(t => split(t, this.area)));
     button(toolbar, "插入图片", () => this.pickImage());
@@ -106,10 +119,14 @@ export class TableEditor extends Modal {
       }
     }, true);
   }
-  change(fn: (t: TableData) => void): void {
-    if (this.busy) return;
+  change(fn: (t: TableData) => void, after?: () => void): boolean {
+    if (this.busy) return false;
     this.commitCell();
-    try { this.history.change(fn); this.clamp(); this.refresh(); } catch (e) { this.fail(e); }
+    try {
+      const changed = this.history.change(fn);
+      if (changed) after?.();
+      this.clamp(); this.refresh(); return changed;
+    } catch (e) { this.fail(e); return false; }
   }
   private fail(error: unknown): void {
     const message = error instanceof Error ? error.message : String(error);
@@ -295,14 +312,27 @@ export class TableEditor extends Modal {
     const next = list[Math.max(0, Math.min(list.length - 1, i + (back ? -1 : 1)))];
     this.selectCell(next); this.td(next)?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
+  private insertAxis(axis: "row" | "col", side: "before" | "after"): void {
+    const area = this.area, active = owners(this.data)[this.anchor.r][this.anchor.c];
+    const index = axis === "row"
+      ? (side === "before" ? area.r0 : area.r1 + 1)
+      : (side === "before" ? area.c0 : area.c1 + 1);
+    let target: Point | null = null;
+    const changed = this.change(t => changeAxis(t, axis, index), () => {
+      target = axis === "row" ? { r: index, c: active.c } : { r: active.r, c: index };
+      this.anchor = { ...target }; this.end = { ...target };
+    });
+    if (!changed || !target) return;
+    this.focusCell(target); this.td(target)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
   private structureMenu(el?: HTMLElement, event?: MouseEvent): void {
     this.commitCell();
     const menu = new Menu(), area = this.area;
     const actions: [string, () => void][] = [
-      ["在上方插入行", () => this.change(t => changeAxis(t, "row", area.r0))],
-      ["在下方插入行", () => this.change(t => changeAxis(t, "row", area.r1 + 1))],
-      ["在左侧插入列", () => this.change(t => changeAxis(t, "col", area.c0))],
-      ["在右侧插入列", () => this.change(t => changeAxis(t, "col", area.c1 + 1))],
+      ["在上方插入行", () => this.insertAxis("row", "before")],
+      ["在下方插入行", () => this.insertAxis("row", "after")],
+      ["在左侧插入列", () => this.insertAxis("col", "before")],
+      ["在右侧插入列", () => this.insertAxis("col", "after")],
       ["删除选中行", () => this.change(t => changeAxis(t, "row", area.r0, area.r1 - area.r0 + 1))],
       ["删除选中列", () => this.change(t => changeAxis(t, "col", area.c0, area.c1 - area.c0 + 1))],
       ["合并选区", () => this.change(t => merge(t, area))],

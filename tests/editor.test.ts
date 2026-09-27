@@ -8,7 +8,7 @@ import { createTable, serialize } from "../src/model";
 const compiled = buildSync({ entryPoints: ["src/editor.ts"], bundle: true, external: ["obsidian"], format: "cjs", platform: "node", write: false }).outputFiles[0].text;
 function setup(saveError = false) {
   const dom = new JSDOM("<body></body>", { pretendToBeVisual: true }), doc = dom.window.document;
-  const notices: string[] = [], saves: any[] = [], modals: any[] = [];
+  const notices: string[] = [], saves: any[] = [], modals: any[] = [], menus: any[] = [];
   dom.window.HTMLElement.prototype.scrollIntoView = function () {};
   class Modal {
     app: unknown; scope = { register() {} };
@@ -21,9 +21,26 @@ function setup(saveError = false) {
     onClose() {}
   }
   class Notice { constructor(text: string) { notices.push(text); } }
+  class Menu {
+    items: { title: string; action: () => void }[] = [];
+    constructor() { menus.push(this); }
+    addItem(configure: (item: any) => void) {
+      const value = { title: "", action: () => {} };
+      const item = {
+        setTitle: (title: string) => { value.title = title; return item; },
+        onClick: (action: () => void) => { value.action = action; return item; }
+      };
+      configure(item); this.items.push(value); return this;
+    }
+    showAtPosition() {}
+    showAtMouseEvent() {}
+  }
+  const setIcon = (parent: HTMLElement, name: string) => {
+    const icon = doc.createElement("span"); icon.dataset.icon = name; parent.replaceChildren(icon);
+  };
   const module = { exports: {} as any };
   vm.runInNewContext(compiled, {
-    module, exports: module.exports, require: () => ({ Modal, Notice, Menu: class {} }),
+    module, exports: module.exports, require: () => ({ Modal, Notice, Menu, setIcon }),
     structuredClone, crypto, DOMParser: dom.window.DOMParser, setTimeout, URL, Blob
   });
   const initial = createTable(3, 3);
@@ -34,6 +51,10 @@ function setup(saveError = false) {
     const button = [...root.querySelectorAll("button")].find(b => b.textContent === label);
     assert.ok(button, `missing button: ${label}`); button.click();
   };
+  const clickMenu = (label: string) => {
+    const item = menus.at(-1)?.items.find((entry: any) => entry.title === label);
+    assert.ok(item, `missing menu item: ${label}`); item.action();
+  };
   const cell = (r = 0, c = 0) => doc.querySelector<HTMLElement>(`td[data-row="${r}"][data-col="${c}"]`)!;
   const key = (target: HTMLElement, key: string, options: object = {}) => target.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...options }));
   const pointer = (target: EventTarget, type: string, pointerId = 1) => {
@@ -42,7 +63,7 @@ function setup(saveError = false) {
     target.dispatchEvent(event);
   };
   const start = () => { cell().click(); key(cell(), "Enter"); return doc.querySelector<HTMLTextAreaElement>("textarea")!; };
-  return { dom, doc, editor, initial, saves, notices, modals, click, cell, key, pointer, start };
+  return { dom, doc, editor, initial, saves, notices, modals, menus, click, clickMenu, cell, key, pointer, start };
 }
 test("cell text commit, Tab navigation and native focus survive DOM replacement", () => {
   const h = setup(), input = h.start(); input.value = "中文\n换行";
@@ -81,6 +102,31 @@ test("mouse drag selects a rectangle and toolbar controls merge and split", () =
   h.click("拆分");
   assert.equal(h.cell(0, 0).getAttribute("rowspan"), "1");
   assert.equal(h.cell(0, 0).getAttribute("colspan"), "1");
+});
+test("visible row and column actions insert after the active cell and select the addition", () => {
+  const h = setup(), rowIds = [...h.editor.data.rowIds], columnIds = h.editor.data.columns.map((column: any) => column.id);
+  h.cell(1, 1).click(); h.click("新增行");
+  assert.equal(h.editor.data.cells.length, 4);
+  assert.deepEqual(h.editor.data.rowIds.filter((_: string, index: number) => index !== 2), rowIds);
+  assert.equal(h.doc.querySelector("td.rt-selected")?.getAttribute("data-row"), "2");
+  assert.match(h.doc.querySelector(".rt-count")!.textContent!, /B3 · 4 行 × 3 列/);
+  h.click("新增列");
+  assert.equal(h.editor.data.columns.length, 4);
+  assert.deepEqual(h.editor.data.columns.filter((_: any, index: number) => index !== 2).map((column: any) => column.id), columnIds);
+  assert.equal(h.doc.querySelector("td.rt-selected")?.getAttribute("data-col"), "2");
+  assert.match(h.doc.querySelector(".rt-count")!.textContent!, /C3 · 4 行 × 4 列/);
+  h.click("撤销"); h.click("撤销");
+  assert.equal(JSON.stringify(h.editor.data.rowIds), JSON.stringify(rowIds));
+  assert.equal(JSON.stringify(h.editor.data.columns.map((column: any) => column.id)), JSON.stringify(columnIds));
+});
+test("more actions insert above and left of the selected cell", () => {
+  const h = setup(), rowId = h.editor.data.rowIds[1], columnId = h.editor.data.columns[1].id;
+  h.cell(1, 1).click(); h.click("更多"); h.clickMenu("在上方插入行");
+  assert.equal(h.editor.data.rowIds[2], rowId);
+  assert.match(h.doc.querySelector(".rt-count")!.textContent!, /B2 · 4 行 × 3 列/);
+  h.click("更多"); h.clickMenu("在左侧插入列");
+  assert.equal(h.editor.data.columns[2].id, columnId);
+  assert.match(h.doc.querySelector(".rt-count")!.textContent!, /B2 · 4 行 × 4 列/);
 });
 test("template change and local formats survive commit and reopen data", () => {
   const h = setup(); h.click("彩色表头"); h.click("斜体");
