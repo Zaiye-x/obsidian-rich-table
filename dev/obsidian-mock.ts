@@ -39,6 +39,16 @@ export class Notice {
     const node = document.querySelector("#notice"); if (node) node.textContent = text;
   }
 }
+export function setIcon(parent: HTMLElement, name: string): void {
+  const icon = document.createElement("span");
+  icon.className = "mock-icon"; icon.dataset.icon = name;
+  icon.textContent = {
+    download: "↓", save: "✓", "undo-2": "↶", "redo-2": "↷",
+    "rows-3": "≡", "columns-3": "▥", ellipsis: "···",
+    merge: "⤢", split: "↔", "image-plus": "+", pencil: "✎"
+  }[name] || "•";
+  parent.replaceChildren(icon);
+}
 export class TFile {}
 export class MarkdownView {}
 export const normalizePath = (s: string) => s;
