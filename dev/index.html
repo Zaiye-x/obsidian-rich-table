@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rich Table · 编辑器验证</title>
+<link rel="stylesheet" href="/styles.css">
+<style>
+:root{--text-normal:#24252b;--text-muted:#656571;--background-primary:#fff;--background-secondary:#f5f5f8;--background-modifier-border:#dddde5;--interactive-accent:#6651c6;--text-on-accent:#fff;--text-error:#c32938;font-family:system-ui,sans-serif}
+*{box-sizing:border-box}.theme-dark{--text-normal:#e4e4eb;--text-muted:#a5a5b5;--background-primary:#202027;--background-secondary:#292931;--background-modifier-border:#42424f}
+body{margin:0;padding:36px;background:var(--background-secondary);color:var(--text-normal)}
+main{max-width:960px;margin:auto}h1{font-size:28px}p{font-size:14px;color:var(--text-muted)}
+button,input,select,textarea{font:inherit;color:var(--text-normal);background:var(--background-primary);border:1px solid var(--background-modifier-border);border-radius:5px;padding:6px 10px}
+button{cursor:pointer}.mod-cta{background:var(--interactive-accent);color:white;border-color:transparent}
+.modal{position:fixed;z-index:10;inset:50% auto auto 50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;width:500px;max-height:92vh;background:var(--background-primary);border:1px solid var(--background-modifier-border);border-radius:12px;padding:24px;box-shadow:0 20px 100px #0003}
+.modal-title{margin:0 0 8px}.mock-close{position:absolute;right:20px;top:12px;font-size:11px;border:0}.modal-content{overflow:auto}
+.mock-menu{position:fixed;z-index:30;background:var(--background-primary);padding:6px;border:1px solid var(--background-modifier-border);box-shadow:0 6px 32px #0002;border-radius:8px;display:flex;flex-direction:column}
+.mock-menu button{text-align:left;border:0;font-size:13px}.mock-menu button:hover{background:var(--background-secondary)}
+#notice{position:fixed;bottom:8px;right:24px;z-index:40;font-size:12px;color:var(--text-error)}
+#preview{margin-top:32px;overflow:auto}header{display:flex;gap:8px;align-items:center}
+</style></head><body><main><p>开发验证环境 · 使用实际编辑器代码，保存接口为本地浏览器模拟</p><h1>Rich Table</h1><header><button id="edit" class="mod-cta">编辑示例表格</button><button id="theme">切换明暗主题</button></header><div id="preview" class="rt-root"></div></main><p id="notice" role="status"></p><script src="/dev/preview.js"></script></body></html>

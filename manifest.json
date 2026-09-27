@@ -1,0 +1,9 @@
+{
+  "id": "obsidian-rich-table",
+  "name": "Rich Table",
+  "version": "0.1.2",
+  "minAppVersion": "1.8.7",
+  "description": "可视化富表格：Excel 粘贴、图片、合并单元格和报告样式。",
+  "author": "zy",
+  "isDesktopOnly": true
+}
