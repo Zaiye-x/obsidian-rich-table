@@ -24,8 +24,14 @@
   font-size: 12px; font-weight: 500; line-height: 1; letter-spacing: 0; white-space: nowrap;
 }
 .rt-confirm-actions .rt-confirm-button:hover { background: var(--rt-control-hover); }
-.rt-confirm-actions .rt-confirm-discard { margin-right: auto; border-color: transparent; background: transparent; color: var(--text-error, #c42b35); }
-.rt-confirm-actions .rt-confirm-discard:hover { background: var(--background-modifier-error-hover, var(--rt-control-hover)); }
+.rt-confirm-actions .rt-confirm-button.rt-confirm-discard {
+  margin-right: auto; border-color: transparent;
+  background: var(--background-modifier-error, #d83b46); color: #fff;
+}
+.rt-confirm-actions .rt-confirm-button.rt-confirm-discard:hover,
+.rt-confirm-actions .rt-confirm-button.rt-confirm-discard:active {
+  background: var(--background-modifier-error-hover, #bd303b); color: #fff;
+}
 .rt-confirm-actions .rt-confirm-button.mod-cta { border-color: transparent; background: var(--interactive-accent); color: var(--text-on-accent); }
 .rt-confirm-actions .rt-confirm-button.mod-cta:hover { background: var(--interactive-accent-hover, var(--interactive-accent)); }
 .rt-heading { display: flex; gap: 20px; align-items: center; justify-content: space-between; padding: 6px 0 14px; }

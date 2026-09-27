@@ -2,7 +2,7 @@
 
 面向 Obsidian 桌面端的可视化富表格插件。表格直接嵌入笔记，点击“编辑”即可打开独立编辑窗口，支持 Excel 区域粘贴、单元格图片、模板与样式调整。
 
-当前可安装体验版：**0.1.7**，作者 **zy**。声明最低 Obsidian 版本 **1.8.7**，仅桌面端。构建和自动化测试通过，Obsidian 实机完整使用流程尚未验证，详见 [验证记录](docs/verification.md)。
+当前可安装体验版：**0.1.8**，作者 **zy**。声明最低 Obsidian 版本 **1.8.7**，仅桌面端。构建和自动化测试通过，Obsidian 实机完整使用流程尚未验证，详见 [验证记录](docs/verification.md)。
 
 ## 界面预览
 
@@ -26,7 +26,7 @@
 
 ## 安装
 
-1. 解压 `dist/obsidian-rich-table-0.1.7.zip`，得到 `obsidian-rich-table` 文件夹。
+1. 解压 `dist/obsidian-rich-table-0.1.8.zip`，得到 `obsidian-rich-table` 文件夹。
 2. 将整个文件夹复制到目标 Vault 的 `.obsidian/plugins/` 下。若使用自定义配置文件夹，则替换 `.obsidian`。macOS Finder 可按 `⌘⇧.` 显示隐藏文件夹。
 3. 确认以下三个文件直接位于插件文件夹内，避免多套一层目录：
 
