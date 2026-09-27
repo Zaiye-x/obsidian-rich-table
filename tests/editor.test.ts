@@ -200,6 +200,10 @@ test("template change and local formats survive commit and reopen data", () => {
 test("closing dirty editor allows continue and discard without persistence", () => {
   const h = setup(), input = h.start(); input.value = "未保存";
   h.editor.close(); assert.equal(h.modals.length, 2);
+  assert.ok(h.doc.querySelector(".rt-confirm-modal.rt-root"));
+  assert.equal(h.doc.querySelector(".rt-confirm-message")?.textContent, "关闭前保存这次修改；放弃后将无法恢复。");
+  assert.deepEqual([...h.doc.querySelectorAll(".rt-confirm-actions button")].map(button => button.textContent), ["放弃修改", "继续编辑", "保存并关闭"]);
+  assert.ok(h.doc.querySelector(".rt-confirm-discard"));
   h.click("继续编辑"); assert.equal(h.doc.querySelectorAll("section").length, 1);
   h.editor.close(); h.click("放弃修改"); assert.equal(h.doc.querySelectorAll("section").length, 0); assert.equal(h.saves.length, 0);
 });

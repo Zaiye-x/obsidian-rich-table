@@ -21,12 +21,14 @@ function iconAction(parent: HTMLElement, iconName: string, label: string, title:
 class ConfirmClose extends Modal {
   constructor(app: App, private choose: (choice: "save" | "discard") => void) { super(app); }
   onOpen(): void {
+    this.modalEl.classList.add("rt-confirm-modal", "rt-root");
+    this.contentEl.classList.add("rt-confirm-content");
     this.setTitle("保留表格修改？");
-    this.contentEl.append(element(this.contentEl.ownerDocument, "p", "", "这些修改尚未写入笔记。"));
-    const actions = element(this.contentEl.ownerDocument, "div", "rt-actions");
-    button(actions, "继续编辑", () => this.close());
-    button(actions, "放弃修改", () => { this.close(); this.choose("discard"); });
-    button(actions, "保存并关闭", () => { this.close(); this.choose("save"); }, "mod-cta");
+    this.contentEl.append(element(this.contentEl.ownerDocument, "p", "rt-confirm-message", "关闭前保存这次修改；放弃后将无法恢复。"));
+    const actions = element(this.contentEl.ownerDocument, "div", "rt-confirm-actions");
+    button(actions, "放弃修改", () => { this.close(); this.choose("discard"); }, "rt-confirm-button rt-confirm-discard");
+    button(actions, "继续编辑", () => this.close(), "rt-confirm-button");
+    button(actions, "保存并关闭", () => { this.close(); this.choose("save"); }, "rt-confirm-button mod-cta");
     this.contentEl.append(actions);
   }
 }
