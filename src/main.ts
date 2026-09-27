@@ -2,11 +2,12 @@ import { Editor, EditorPosition, MarkdownView, Modal, Notice, Plugin, PluginSett
 import { createTable, parse, serialize, Template, TEMPLATES } from "./model";
 import { TableEditor } from "./editor";
 import { NoteStorage } from "./storage";
-import { renderTable, element } from "./renderer";
+import { element } from "./renderer";
 import { button, numeric, select } from "./ui";
 import { templateNames } from "./templates";
 import { blocks } from "./source";
 import { RichTableSlashSuggest } from "./slash";
+import { renderPreview } from "./preview";
 interface Settings { rows: number; cols: number; template: Template }
 const DEFAULTS: Settings = { rows: 5, cols: 4, template: "grid" };
 export default class RichTablePlugin extends Plugin {
@@ -39,18 +40,13 @@ export default class RichTablePlugin extends Plugin {
       }
     });
     this.registerMarkdownCodeBlockProcessor("rich-table", (source, el, context) => {
-      el.classList.add("rt-root", "rt-preview");
       try {
         const data = parse(source), file = this.app.vault.getAbstractFileByPath(context.sourcePath);
         if (!(file instanceof TFile)) throw new Error("找不到表格所在笔记。");
         const storage = new NoteStorage(this.app, file, source);
-        const heading = element(el.ownerDocument, "div", "rt-preview-heading");
-        heading.append(element(el.ownerDocument, "span", "rt-caption", data.title));
-        button(heading, "编辑", () => this.openEditor(file, source), "rt-edit-button");
-        const scroll = element(el.ownerDocument, "div", "rt-preview-scroll");
-        scroll.append(renderTable(el.ownerDocument, data, { resolveImage: path => storage.image(path) }));
-        el.append(heading, scroll);
+        renderPreview(el, data, path => storage.image(path), () => this.openEditor(file, source));
       } catch (error) {
+        el.classList.add("rt-root", "rt-preview");
         el.append(element(el.ownerDocument, "p", "rt-error", `无法显示富表格：${error instanceof Error ? error.message : error}`));
         const details = element(el.ownerDocument, "details"); details.append(element(el.ownerDocument, "summary", "", "查看原始数据"));
         details.append(element(el.ownerDocument, "pre", "", source)); el.append(details);

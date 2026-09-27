@@ -45,7 +45,7 @@ export function setIcon(parent: HTMLElement, name: string): void {
   icon.textContent = {
     download: "↓", save: "✓", "undo-2": "↶", "redo-2": "↷",
     "rows-3": "≡", "columns-3": "▥", ellipsis: "···",
-    merge: "⤢", split: "↔", "image-plus": "+"
+    merge: "⤢", split: "↔", "image-plus": "+", pencil: "✎"
   }[name] || "•";
   parent.replaceChildren(icon);
 }
