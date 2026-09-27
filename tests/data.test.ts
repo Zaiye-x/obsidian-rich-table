@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
-import { changeAxis, clone, createTable, expandedRect, History, merge, owners, parse, paste, rect, serialize, split } from "../src/model";
+import { changeAxis, clone, createTable, expandedRect, History, merge, moveAxis, owners, parse, paste, rect, serialize, split } from "../src/model";
 import { fromClipboard, parseTSV, toMarkdown, toTSV } from "../src/clipboard";
 import { blocks, locate, replaceBlock } from "../src/source";
 import { renderTable, toHTML } from "../src/renderer";
@@ -82,6 +82,38 @@ test("insertion inside a merge expands it while adjacent insertion shifts anchor
   changeAxis(t, "row", 1); changeAxis(t, "col", 1);
   assert.equal(t.cells[0][0].rowspan, 3); assert.equal(t.cells[0][0].colspan, 3);
   changeAxis(t, "row", 0); assert.equal(t.cells[1][0].text, "x"); owners(t);
+});
+test("moving rows and columns preserves stable IDs, widths and cell content", () => {
+  const t = createTable(4, 4);
+  t.cells.forEach((row, r) => row.forEach((cell, c) => cell.text = `${r},${c}`));
+  t.columns.forEach((column, c) => column.width = 100 + c);
+  const rows = [...t.rowIds], columns = t.columns.map(column => ({ ...column }));
+  moveAxis(t, "row", 0, 1, 3);
+  assert.deepEqual(t.rowIds, [rows[1], rows[2], rows[3], rows[0]]);
+  assert.deepEqual(t.cells.map(row => row[0].text), ["1,0", "2,0", "3,0", "0,0"]);
+  moveAxis(t, "col", 3, 1, 0);
+  assert.deepEqual(t.columns, [columns[3], columns[0], columns[1], columns[2]]);
+  assert.deepEqual(t.cells[0].map(cell => cell.text), ["1,3", "1,0", "1,1", "1,2"]);
+});
+test("moving a selected block keeps its internal order and merged structure", () => {
+  const t = createTable(5, 3); t.cells[1][0].text = "合并内容";
+  merge(t, { r0: 1, c0: 0, r1: 2, c1: 1 });
+  const movedIds = t.rowIds.slice(1, 3);
+  moveAxis(t, "row", 1, 2, 3);
+  assert.deepEqual(t.rowIds.slice(3), movedIds);
+  assert.equal(t.cells[3][0].text, "合并内容");
+  assert.equal(t.cells[3][0].rowspan, 2);
+  assert.deepEqual(owners(t)[4][1], { r: 3, c: 0 });
+});
+test("moving a partial merge or dropping inside another merge is rejected without mutation", () => {
+  const partial = createTable(4, 3); merge(partial, { r0: 1, c0: 0, r1: 2, c1: 1 });
+  const partialBefore = serialize(partial);
+  assert.throws(() => moveAxis(partial, "row", 1, 1, 2), /合并单元格/);
+  assert.equal(serialize(partial), partialBefore);
+  const destination = createTable(4, 3); merge(destination, { r0: 0, c0: 0, r1: 1, c1: 1 });
+  const destinationBefore = serialize(destination);
+  assert.throws(() => moveAxis(destination, "row", 3, 1, 1), /合并单元格/);
+  assert.equal(serialize(destination), destinationBefore);
 });
 test("last row/column cannot be removed, and maximum dimensions are enforced", () => {
   const t = createTable(1, 1);

@@ -128,6 +128,36 @@ export function changeAxis(t: TableData, axis: "row" | "col", index: number, rem
   }
   owners(t);
 }
+// Move a contiguous axis block to its final index after removal. Reject any
+// permutation that would separate coordinates belonging to a merged cell.
+export function moveAxis(t: TableData, axis: "row" | "col", from: number, count: number, to: number): void {
+  const n = axis === "row" ? t.cells.length : t.columns.length;
+  if (![from, count, to].every(Number.isInteger) || from < 0 || count < 1 || from + count > n || to < 0 || to > n - count)
+    throw new Error("行列移动范围无效。");
+  if (from === to) return;
+  const order = Array.from({ length: n }, (_, index) => index);
+  const block = order.splice(from, count); order.splice(to, 0, ...block);
+  const positions = new Array<number>(n);
+  order.forEach((source, index) => positions[source] = index);
+  const map = owners(t);
+  for (let r = 0; r < t.cells.length; r++) for (let c = 0; c < t.columns.length; c++) {
+    if (map[r][c].r !== r || map[r][c].c !== c) continue;
+    const cell = t.cells[r][c], start = axis === "row" ? r : c;
+    const span = axis === "row" ? cell.rowspan : cell.colspan;
+    for (let offset = 1; offset < span; offset++) {
+      if (positions[start + offset] !== positions[start] + offset)
+        throw new Error("移动会拆开合并单元格，请移动完整合并区域或先拆分单元格。");
+    }
+  }
+  if (axis === "row") {
+    t.rowIds = order.map(index => t.rowIds[index]);
+    t.cells = order.map(index => t.cells[index]);
+  } else {
+    t.columns = order.map(index => t.columns[index]);
+    t.cells = t.cells.map(row => order.map(index => row[index]));
+  }
+  owners(t);
+}
 export function paste(t: TableData, fragment: TableData, at: Point): void {
   const height = fragment.cells.length, width = fragment.columns.length;
   dimensions(Math.max(t.cells.length, at.r + height), Math.max(t.columns.length, at.c + width));

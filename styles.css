@@ -36,6 +36,13 @@
 .rt-table td.rt-cell { position: relative; padding: 10px 12px; height: 42px; min-width: 0; overflow-wrap: anywhere; word-break: normal; box-sizing: border-box; }
 .rt-cell-text { white-space: pre-wrap; line-height: 1.5; min-height: 1.5em; }
 .rt-table .rt-axis { user-select: none; position: sticky; top: 0; z-index: 3; background: var(--rt-stripe); color: var(--text-muted); font-size: 11px; font-weight: 500; text-align: center; height: 30px; border: 1px solid var(--rt-line); cursor: pointer; padding: 4px; }
+.rt-table .rt-axis[draggable="true"] { cursor: grab; }
+.rt-grid-wrap.is-axis-dragging .rt-axis[draggable="true"] { cursor: grabbing; }
+.rt-table .rt-axis.rt-axis-selected { color: var(--text-on-accent); background: var(--interactive-accent); }
+.rt-table tr.rt-drop-before > * { box-shadow: inset 0 3px 0 var(--interactive-accent); }
+.rt-table tr.rt-drop-after > * { box-shadow: inset 0 -3px 0 var(--interactive-accent); }
+.rt-table .rt-drop-left { box-shadow: inset 3px 0 0 var(--interactive-accent); }
+.rt-table .rt-drop-right { box-shadow: inset -3px 0 0 var(--interactive-accent); }
 .rt-table tbody .rt-axis { left: 0; z-index: 2; width: 44px; top: auto; }
 .rt-table .rt-corner { left: 0; z-index: 4; }
 .rt-table td.rt-selected::after { content: ""; position: absolute; inset: 0; background: var(--interactive-accent); opacity: .09; pointer-events: none; }
