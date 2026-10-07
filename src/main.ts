@@ -8,10 +8,24 @@ import { templateNames } from "./templates";
 import { blocks } from "./source";
 import { RichTableSlashSuggest } from "./slash";
 import { renderPreview } from "./preview";
-interface Settings { rows: number; cols: number; template: Template }
-const DEFAULTS: Settings = { rows: 5, cols: 4, template: "grid" };
+import {
+  addFavoriteColor,
+  defaultFavoriteColors,
+  FavoriteColorController,
+  FavoriteColorKind,
+  FavoriteColors,
+  readFavoriteColors,
+  removeFavoriteColor
+} from "./colors";
+interface Settings { rows: number; cols: number; template: Template; favoriteColors: FavoriteColors }
+const defaults = (): Settings => ({ rows: 5, cols: 4, template: "grid", favoriteColors: defaultFavoriteColors() });
 export default class RichTablePlugin extends Plugin {
-  settings: Settings = { ...DEFAULTS };
+  settings: Settings = defaults();
+  private colorController: FavoriteColorController = {
+    get: () => this.settings.favoriteColors,
+    add: (kind, color) => this.updateFavoriteColor(kind, color, false),
+    remove: (kind, color) => this.updateFavoriteColor(kind, color, true)
+  };
   async onload(): Promise<void> {
     const saved = await this.loadData();
     if (saved) {
@@ -19,6 +33,7 @@ export default class RichTablePlugin extends Plugin {
       if (Number.isInteger(saved.cols) && saved.cols >= 1 && saved.cols <= 50) this.settings.cols = saved.cols;
       if (TEMPLATES.includes(saved.template)) this.settings.template = saved.template;
     }
+    this.settings.favoriteColors = readFavoriteColors(saved?.favoriteColors);
     this.addCommand({
       id: "insert-rich-table", name: "插入富表格",
       editorCallback: (editor, view) => { if (view.file) this.openInsert(editor, view.file); }
@@ -73,8 +88,16 @@ export default class RichTablePlugin extends Plugin {
     try {
       const data = parse(source), storage = new NoteStorage(this.app, file, source);
       await storage.fresh(data.id);
-      new TableEditor(this.app, data, storage).open();
+      new TableEditor(this.app, data, storage, this.colorController).open();
     } catch (error) { new Notice(error instanceof Error ? error.message : String(error), 7000); }
+  }
+  private updateFavoriteColor(kind: FavoriteColorKind, color: string, remove: boolean): void {
+    const current = this.settings.favoriteColors;
+    const next = remove ? removeFavoriteColor(current, kind, color) : addFavoriteColor(current, kind, color);
+    if (next === current) return;
+    this.settings.favoriteColors = next;
+    void this.saveData(this.settings).catch(error =>
+      new Notice(`常用颜色保存失败：${error instanceof Error ? error.message : String(error)}`, 7000));
   }
 }
 class TableSettings extends PluginSettingTab {
