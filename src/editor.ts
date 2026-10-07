@@ -5,6 +5,7 @@ import { colLabel, element, renderTable, toHTML } from "./renderer";
 import { NoteStorage } from "./storage";
 import { PanelHost, renderPanel, Scope } from "./panel";
 import { button, download, field } from "./ui";
+import { FavoriteColorController } from "./colors";
 
 type Axis = "row" | "col";
 interface AxisRange { from: number; count: number }
@@ -55,7 +56,7 @@ export class TableEditor extends Modal {
   private suppressCellClick = false;
   private suppressAxisClickUntil = 0;
   private axisDrag: (AxisRange & { axis: Axis; boundary: number | null }) | null = null;
-  constructor(app: App, data: TableData, private storage: NoteStorage) {
+  constructor(app: App, data: TableData, private storage: NoteStorage, private colors: FavoriteColorController) {
     super(app); this.history = new History(clone(data)); this.initial = serialize(data);
   }
   get data(): TableData { return this.history.value; }
@@ -225,7 +226,11 @@ export class TableEditor extends Modal {
     const host: PanelHost = {
       data: this.data, area: this.area, scope: this.styleScope,
       setScope: s => { this.styleScope = s; this.drawPanel(); },
-      change: fn => this.change(fn), addImage: () => this.pickImage()
+      change: fn => this.change(fn),
+      favoriteColors: this.colors.get(),
+      addFavoriteColor: (kind, color) => { this.colors.add(kind, color); this.drawPanel(); },
+      removeFavoriteColor: (kind, color) => { this.colors.remove(kind, color); this.drawPanel(); },
+      addImage: () => this.pickImage()
     };
     const scroll = this.panel.scrollTop; renderPanel(this.panel, host); this.panel.scrollTop = scroll;
   }

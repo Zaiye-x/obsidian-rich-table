@@ -4,11 +4,14 @@ import { buildSync } from "esbuild";
 import { JSDOM } from "jsdom";
 import vm from "node:vm";
 import { createTable, serialize } from "../src/model";
+import { addFavoriteColor, defaultFavoriteColors, FavoriteColorKind, removeFavoriteColor } from "../src/colors";
 
 const compiled = buildSync({ entryPoints: ["src/editor.ts"], bundle: true, external: ["obsidian"], format: "cjs", platform: "node", write: false }).outputFiles[0].text;
 function setup(saveError = false) {
   const dom = new JSDOM("<body></body>", { pretendToBeVisual: true }), doc = dom.window.document;
   const notices: string[] = [], saves: any[] = [], modals: any[] = [], menus: any[] = [];
+  let favoriteColors = defaultFavoriteColors();
+  const favoriteEvents: { action: "add" | "remove"; kind: FavoriteColorKind; color: string }[] = [];
   dom.window.HTMLElement.prototype.scrollIntoView = function () {};
   class Modal {
     app: unknown; scope = { register() {} };
@@ -46,7 +49,18 @@ function setup(saveError = false) {
   const initial = createTable(3, 3);
   initial.cells[0][0].text = "原始"; initial.cells[0][1].text = "第二格";
   const storage = { image: () => null, async save(t: any) { if (saveError) throw new Error("冲突：拒绝覆盖"); saves.push(t); } };
-  const editor = new module.exports.TableEditor({}, initial, storage); editor.open();
+  const colors = {
+    get: () => favoriteColors,
+    add(kind: FavoriteColorKind, color: string) {
+      favoriteColors = addFavoriteColor(favoriteColors, kind, color);
+      favoriteEvents.push({ action: "add", kind, color });
+    },
+    remove(kind: FavoriteColorKind, color: string) {
+      favoriteColors = removeFavoriteColor(favoriteColors, kind, color);
+      favoriteEvents.push({ action: "remove", kind, color });
+    }
+  };
+  const editor = new module.exports.TableEditor({}, initial, storage, colors); editor.open();
   const click = (label: string, root = doc.body) => {
     const button = [...root.querySelectorAll("button")].find(b => b.textContent === label || b.getAttribute("aria-label") === label);
     assert.ok(button, `missing button: ${label}`); button.click();
@@ -82,7 +96,11 @@ function setup(saveError = false) {
     dispatch(source, "dragstart"); dispatch(target, "dragover"); onOver?.(); dispatch(target, "drop"); dispatch(source, "dragend"); dispatch(target, "click");
   };
   const start = () => { cell().click(); key(cell(), "Enter"); return doc.querySelector<HTMLTextAreaElement>("textarea")!; };
-  return { dom, doc, editor, initial, saves, notices, modals, menus, click, clickMenu, cell, rowHeader, columnHeader, key, pointer, dragAxis, start };
+  return {
+    dom, doc, editor, initial, saves, notices, modals, menus, favoriteEvents,
+    favoriteColors: () => favoriteColors,
+    click, clickMenu, cell, rowHeader, columnHeader, key, pointer, dragAxis, start
+  };
 }
 test("cell text commit, Tab navigation and native focus survive DOM replacement", () => {
   const h = setup(), input = h.start(); input.value = "中文\n换行";
@@ -196,6 +214,30 @@ test("template change and local formats survive commit and reopen data", () => {
   const h = setup(); h.click("彩色表头"); h.click("斜体");
   assert.equal(h.editor.data.template, "header"); assert.equal(h.editor.data.cells[0][0].style.italic, true);
   h.click("学术三线表"); assert.equal(h.editor.data.cells[0][0].style.italic, true);
+});
+test("favorite color defaults apply text and background colors with one click", () => {
+  const h = setup();
+  h.doc.querySelector<HTMLButtonElement>('button[aria-label="应用常用文字颜色 #FFFFFF"]')!.click();
+  assert.equal(h.editor.data.cells[0][0].style.color, "#ffffff");
+  h.doc.querySelector<HTMLButtonElement>('button[aria-label="应用常用背景颜色 #2483FF"]')!.click();
+  assert.equal(h.editor.data.cells[0][0].style.background, "#2483ff");
+});
+test("current colors can be added to and removed from favorites without changing table history", () => {
+  const h = setup();
+  const picker = h.doc.querySelector<HTMLInputElement>('input[aria-label="选择文字颜色"]')!;
+  picker.value = "#2483ff";
+  picker.dispatchEvent(new h.dom.window.Event("change", { bubbles: true }));
+  const tableAfterColorChange = serialize(h.editor.data);
+  h.doc.querySelector<HTMLButtonElement>('button[aria-label="将 #2483FF 添加到常用文字颜色"]')!.click();
+  assert.deepEqual(h.favoriteColors().text, ["#ffffff", "#2483ff"]);
+  assert.equal(serialize(h.editor.data), tableAfterColorChange);
+  assert.deepEqual(h.favoriteEvents.at(-1), { action: "add", kind: "text", color: "#2483ff" });
+  assert.ok(h.doc.querySelector('button[aria-label="应用常用文字颜色 #2483FF"]'));
+  h.doc.querySelector<HTMLButtonElement>('button[aria-label="移除常用文字颜色 #2483FF"]')!.click();
+  assert.deepEqual(h.favoriteColors().text, ["#ffffff"]);
+  assert.equal(serialize(h.editor.data), tableAfterColorChange);
+  assert.deepEqual(h.favoriteEvents.at(-1), { action: "remove", kind: "text", color: "#2483ff" });
+  assert.equal(h.doc.querySelector('button[aria-label="应用常用文字颜色 #2483FF"]'), null);
 });
 test("closing dirty editor allows continue and discard without persistence", () => {
   const h = setup(), input = h.start(); input.value = "未保存";
